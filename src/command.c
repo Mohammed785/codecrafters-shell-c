@@ -79,8 +79,7 @@ void exec_builtins(int argc,const char* argv[]){
 		}
 	}else if(strcmp(argv[0], "cd")==0){
 		if(strcmp(argv[1], "~")==0){
-			struct passwd *pw = getpwuid(getuid());
-			argv[1] = pw->pw_dir;
+			argv[1] = getenv("HOME");
 		}
 		if(chdir(argv[1])==-1){
 			printf("cd: %s: No such file or directory\n",argv[1]);
