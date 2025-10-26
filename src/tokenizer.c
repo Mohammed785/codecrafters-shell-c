@@ -97,6 +97,11 @@ void parse(Tokenizer * tokenizer){
 	for(;i<=strlen(tokenizer->buffer);i++){
 		current_char = tokenizer->buffer[i];
 		current_char_type = get_token_type(current_char);
+		if(i+1<=strlen(tokenizer->buffer)&&tokenizer->state==NO_QUOTE&&current_char_type==SINGLE_QUOTE&&
+			get_token_type(tokenizer->buffer[i+1])==SINGLE_QUOTE){
+			i++;
+			continue;
+		}
 		switch (tokenizer->state) {
 			case SPACE:
 				if(current_char_type==SPACE){
@@ -104,11 +109,9 @@ void parse(Tokenizer * tokenizer){
 				}else if(current_char_type==EOL){
 					free(token);
 				}else if(current_char_type==NO_QUOTE){
-					// token->value[cursor++] = current_char;
 					append_token_value(token, cursor++, current_char);
 					tokenizer->state = NO_QUOTE;
 				}else if(current_char_type==ESCAPE){
-					// token->value[cursor++] = tokenizer->buffer[++i];
 					append_token_value(token, cursor++, tokenizer->buffer[++i]);
 					tokenizer->state = NO_QUOTE;
 				}else if(current_char_type==SINGLE_QUOTE||current_char_type==DOUBLE_QUOTE){
@@ -137,7 +140,7 @@ void parse(Tokenizer * tokenizer){
 					continue;
 				}
 				// end of quote
-				char next = tokenizer->buffer[++i];
+				char next = tokenizer->buffer[i+1];
 				TokenType next_char_type = get_token_type(next);
 				switch (next) {
 					case ' ':
@@ -152,7 +155,7 @@ void parse(Tokenizer * tokenizer){
 						insert_token(tokenizer, token);
 						continue;
 					case '\'':
-					case '"':
+                    case '"':
 						i++;
 						break;
 				}
@@ -176,7 +179,7 @@ void parse(Tokenizer * tokenizer){
 					append_token_value(token, cursor++, current_char);					
 					continue;
 				}
-				next = tokenizer->buffer[++i];
+				next = tokenizer->buffer[i+1];
 				next_char_type = get_token_type(next);
 				switch (next) {
 					case ' ':
