@@ -6,7 +6,9 @@
 #include <string.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 const char* builtins[] = {
 	"exit",
@@ -16,7 +18,7 @@ const char* builtins[] = {
 	"cd",
 };
 
-char* join_strings(const char* arr[],char* sep,int count){
+static inline char* join_strings(const char* arr[],char* sep,int count){
 	char* str = NULL;
 	int total_length = 0;
 	int i=0;
@@ -30,7 +32,21 @@ char* join_strings(const char* arr[],char* sep,int count){
 	return str;
 }
 
-bool is_builtin(const char* command){
+char* find_exc_path(const char* cmd){
+	char* path = strdup(getenv("PATH"));
+	for(char* dir = strtok(path, ":");dir!=NULL;dir = strtok(NULL, ":")){
+		size_t dir_name_len =strlen(dir);
+		size_t full_len= dir_name_len+2+strlen(cmd);
+		char* fpath = malloc(full_len);
+		snprintf(fpath, full_len, "%s/%s",dir,cmd);
+		if(access(fpath, X_OK)==0){
+			return fpath;
+		}
+	}
+	return NULL;
+};
+
+inline bool is_builtin(const char* command){
 	for(int i=0;i<5;i++){
 		if(strcmp(command, builtins[i])==0){
 			return true;
@@ -48,17 +64,12 @@ void exec_builtins(int argc,const char* argv[]){
 		if(is_builtin(argv[1])){
 			printf("%s is a shell builtin\n",argv[1]);
 		}else{
-			char* path = strdup(getenv("PATH"));
-			for(char* dir = strtok(path, ":");dir!=NULL;dir = strtok(NULL, ":")){
-				size_t dir_name_len =strlen(dir);
-				char fpath[dir_name_len+2+strlen(argv[1])];
-				snprintf(fpath, sizeof(fpath), "%s/%s",dir,argv[1]);
-				if(access(fpath, X_OK)==0){
-					printf("%s is %s\n",argv[1],fpath);
-					return;
-				}
+			char* path = find_exc_path(argv[1]);
+			if(path!=NULL){
+				printf("%s is %s\n",argv[1],path);
+			}else{
+				printf("%s: not found\n",argv[1]);
 			}
-			printf("%s: not found\n",argv[1]);
 		}
 	}
 }
@@ -67,7 +78,23 @@ void exec_command(int argc,const char* argv[]){
 	if(is_builtin(argv[0])){
 		exec_builtins(argc, argv);
 	}else{
-		printf("%s: command not found\n",argv[0]);
+		char* path = find_exc_path(argv[0]);
+		if(path==NULL){
+			printf("%s: command not found\n",argv[0]);
+			return;
+		}
+		pid_t p = fork();
+		if(p==0){
+			execvp(argv[0], (char *const *)argv);
+			exit(0);
+		}else if(p>0){
+			int status;
+			waitpid(p,&status,0);
+		}else{
+			perror("fork");
+			exit_code = 1;
+		}
+		return;
 	}
 }
 

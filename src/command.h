@@ -10,4 +10,5 @@ void build_argv(Tokenizer*,char* []);
 void exec_command(int,const char*[]);
 void exec_builtins(int,const char*[]);
 bool is_builtin(const char* command);
+char* find_exc_path(const char*);
 #endif
