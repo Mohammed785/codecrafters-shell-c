@@ -6,6 +6,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 const char* builtins[] = {
 	"exit",
@@ -47,30 +48,15 @@ void exec_builtins(int argc,const char* argv[]){
 		if(is_builtin(argv[1])){
 			printf("%s is a shell builtin\n",argv[1]);
 		}else{
-			char* path = getenv("PATH");
-			for(char* token = strtok(path, ":");token!=NULL;token = strtok(NULL, ":")){
-				DIR* dir = opendir(token);
-				if(dir==NULL){
-					continue;
+			char* path = strdup(getenv("PATH"));
+			for(char* dir = strtok(path, ":");dir!=NULL;dir = strtok(NULL, ":")){
+				size_t dir_name_len =strlen(dir);
+				char fpath[dir_name_len+2+strlen(argv[1])];
+				snprintf(fpath, sizeof(fpath), "%s/%s",dir,argv[1]);
+				if(access(fpath, X_OK)==0){
+					printf("%s is %s\n",argv[1],fpath);
+					return;
 				}
-				struct dirent* in_file;
-				struct stat st;
-				size_t dir_name_len =strlen(path);
-				char *fpath = malloc(dir_name_len+1+255);
-				strcpy(fpath, path);
-				fpath[dir_name_len] = '/';
-				while ((in_file = readdir(dir))!=NULL) {
-					if(strcmp(in_file->d_name, argv[1])==0){
-						strcpy(fpath+1+dir_name_len, in_file->d_name);
-						if(stat(fpath, &st)==0&&st.st_mode&(S_IFREG|S_IXUSR)){
-							printf("%s is %s\n",argv[1],fpath);
-							closedir(dir);
-							return;
-						}
-					}
-				}
-				free(fpath);
-				closedir(dir);
 			}
 			printf("%s: not found\n",argv[1]);
 		}
