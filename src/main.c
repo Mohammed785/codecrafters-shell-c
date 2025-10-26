@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
 	size_t len =0;
 	ssize_t n;
 	Tokenizer* tokenizer = new_tokenizer();
-	while (1) {
+	while (is_running) {
 		printf("$ ");
 		if((n=getline(&tokenizer->buffer, &len, stdin))==-1){
 			clear_tokenizer(tokenizer);
@@ -34,9 +34,8 @@ int main(int argc, char *argv[]) {
 		if(strcmp(argv[0],"exit")==0){
 			exit(0);
 		}
-		printf("%s: command not found\n",argv[0]);
+		exec_command(tokenizer->argc,(const char**)argv);
 		clear_tokens(tokenizer);
 	}
-
-  return 0;
+  return exit_code;
 }
