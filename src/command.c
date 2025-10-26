@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <pwd.h>
 
 const char* builtins[] = {
 	"exit",
@@ -70,6 +71,19 @@ void exec_builtins(int argc,const char* argv[]){
 			}else{
 				printf("%s: not found\n",argv[1]);
 			}
+		}
+	}else if(strcmp(argv[0], "pwd")==0){
+		char buf[256];
+		if(getcwd(buf, 256)!=NULL){
+			printf("%s\n",buf);
+		}
+	}else if(strcmp(argv[0], "cd")==0){
+		if(strcmp(argv[1], "~")==0){
+			struct passwd *pw = getpwuid(getuid());
+			argv[1] = pw->pw_dir;
+		}
+		if(chdir(argv[1])==-1){
+			printf("cd: %s: No such file or directory\n",argv[1]);
 		}
 	}
 }
