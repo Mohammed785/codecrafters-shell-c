@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 		if(strcmp(argv[0],"exit")==0){
 			exit(0);
 		}
-		exec_command(tokenizer->argc,(const char**)argv);
+		exec_command(tokenizer->argc,argv);
 		clear_tokens(tokenizer);
 	}
   return exit_code;

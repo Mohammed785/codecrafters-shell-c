@@ -19,12 +19,14 @@ const char* builtins[] = {
 	"cd",
 };
 
-static inline char* join_strings(const char* arr[],char* sep,int count){
-	char* str = NULL;
-	int total_length = 0;
+static inline char* join_strings(char* arr[],char* sep,int count){
+	if(count<=0)return "";
+	size_t sep_len = strlen(sep);
+	int total_length = 1;
 	int i=0;
-	for(i=0;i<count;i++) total_length+=strlen(arr[i]);
-	str = malloc(sizeof(char)*total_length);
+	for(i=0;i<count;i++) total_length+=strlen(arr[i])+(i<count-1?sep_len:0);
+	char* str = malloc(sizeof(char)*total_length);
+	if(!str)return NULL;
 	str[0] = '\0';
 	for(i=0;i<count;i++){
 		strcat(str, arr[i]);
@@ -33,7 +35,7 @@ static inline char* join_strings(const char* arr[],char* sep,int count){
 	return str;
 }
 
-char* find_exc_path(const char* cmd){
+char* find_exc_path(char* cmd){
 	char* path = strdup(getenv("PATH"));
 	for(char* dir = strtok(path, ":");dir!=NULL;dir = strtok(NULL, ":")){
 		size_t dir_name_len =strlen(dir);
@@ -41,13 +43,16 @@ char* find_exc_path(const char* cmd){
 		char* fpath = malloc(full_len);
 		snprintf(fpath, full_len, "%s/%s",dir,cmd);
 		if(access(fpath, X_OK)==0){
+			free(path);
 			return fpath;
 		}
+		free(fpath);
 	}
+	free(path);
 	return NULL;
 };
 
-inline bool is_builtin(const char* command){
+inline bool is_builtin(char* command){
 	for(int i=0;i<5;i++){
 		if(strcmp(command, builtins[i])==0){
 			return true;
@@ -56,7 +61,7 @@ inline bool is_builtin(const char* command){
 	return false;
 }
 
-void exec_builtins(int argc,const char* argv[]){
+void exec_builtins(int argc,char* argv[]){
 	if(strcmp(argv[0], "echo")==0){
 		char* str = join_strings(&argv[1], " ", argc-1);
 		printf("%s\n",str);
@@ -87,7 +92,48 @@ void exec_builtins(int argc,const char* argv[]){
 	}
 }
 
-void exec_command(int argc,const char* argv[]){
+void check_redirect(int* argc,char *argv[],RedirectState* state){
+	state->type = NO_REDIRECT;
+	state->fd = 0;
+	for (int i = 0; i<*argc; i++) {
+		char* arg = argv[i];
+		if(strcmp(">", arg)==0||strcmp("1>", arg)==0){
+			state->type = REDIRECT_OUT;
+		}else if(strcmp("2>", arg)==0){
+			state->type = REDIRECT_ERR;
+		}else if(strcmp(">>", arg)==0||strcmp("1>>", arg)==0){
+			state->type = APPEND_OUT;
+		}else if(strcmp("2>>", arg)==0){
+			state->type = APPEND_ERR;
+		}else{
+			continue;
+		}
+		if(i+1>=*argc){
+			state->type = NO_REDIRECT;
+			continue;
+		}
+		state->path = argv[i+1];
+		argv[i] = NULL;
+		argv[i+1] = NULL;
+		*argc=*argc-2;
+		return;
+	}
+}
+
+void exec_command(int argc,char* argv[]){
+	RedirectState state = {.fd=0,.path=NULL,.type=NO_REDIRECT};
+	check_redirect(&argc, argv, &state);
+	FILE* fp;
+	if(state.type!=NO_REDIRECT){
+		fp = fopen(state.path, (state.type==REDIRECT_ERR||state.type==REDIRECT_OUT)?"w":"a");
+		if(state.type==REDIRECT_OUT||state.type==APPEND_OUT){
+			state.fd = dup(STDOUT_FILENO);
+			dup2(fileno(fp), STDOUT_FILENO);
+		}else if(state.type==REDIRECT_ERR||state.type==APPEND_ERR){
+			state.fd = dup(STDERR_FILENO);
+			dup2(fileno(fp), STDERR_FILENO);
+		}
+	}
 	if(is_builtin(argv[0])){
 		exec_builtins(argc, argv);
 	}else{
@@ -98,7 +144,7 @@ void exec_command(int argc,const char* argv[]){
 		}
 		pid_t p = fork();
 		if(p==0){
-			execvp(argv[0], (char *const *)argv);
+			execvp(argv[0], argv);
 			exit(0);
 		}else if(p>0){
 			int status;
@@ -107,7 +153,11 @@ void exec_command(int argc,const char* argv[]){
 			perror("fork");
 			exit_code = 1;
 		}
-		return;
+	}
+	if(state.type!=NO_REDIRECT){
+		dup2(state.fd, (state.type==REDIRECT_OUT||state.type==APPEND_OUT)?STDOUT_FILENO:STDERR_FILENO);
+		fclose(fp);
+		close(state.fd);
 	}
 }
 

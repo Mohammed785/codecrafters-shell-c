@@ -5,10 +5,23 @@
 
 extern bool is_running;
 extern int exit_code;
+typedef enum RedirectType{
+	NO_REDIRECT,
+	REDIRECT_OUT,
+	REDIRECT_ERR,
+	APPEND_OUT,
+	APPEND_ERR,
+} RedirectType;
+typedef struct RedirectState{
+	RedirectType type;
+	const char* path;
+	int fd;
+} RedirectState;
 
 void build_argv(Tokenizer*,char* []);
-void exec_command(int,const char*[]);
-void exec_builtins(int,const char*[]);
-bool is_builtin(const char* command);
-char* find_exc_path(const char*);
+void exec_command(int,char*[]);
+void exec_builtins(int,char*[]);
+bool is_builtin(char* command);
+char* find_exc_path(char*);
+void check_redirect(int* argc,char*[],RedirectState*);
 #endif
