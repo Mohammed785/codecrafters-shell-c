@@ -1,33 +1,52 @@
+#include <readline/rlstdc.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "tokenizer.h"
 #include "command.h"
-
+#include <readline/readline.h>
+#include <readline/history.h>
+#include <readline/keymaps.h>
+#include <sys/types.h>
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <sys/errno.h>
 bool is_running = true;
 int exit_code = 0;
+
+// https://tiswww.case.edu/php/chet/readline/readline.html#Custom-Completers
+char * dupstr (char *s)
+{
+  char *r;
+  r = malloc (strlen (s) + 1);
+  strcpy (r, s);
+  return (r);
+}
+
+const char* commands_names[] = {"echo","exit"};
+
+void initialize_readline(char*);
 
 int main(int argc, char *argv[]) {
 	setbuf(stdout, NULL);
     setbuf(stderr, NULL);
+    initialize_readline(argv[0]);
 	size_t len =0;
 	ssize_t n;
 	Tokenizer* tokenizer = new_tokenizer();
+	rl_bind_key('\t', rl_complete);
+	using_history();
 	while (is_running) {
-		printf("$ ");
-		if((n=getline(&tokenizer->buffer, &len, stdin))==-1){
+		char* input = readline("$ ");
+		if(!input){
 			clear_tokenizer(tokenizer);
 			exit(1);
 		}
-        if ( n == 1 )
-            continue;
-        tokenizer->buffer[n-1] = '\0';
-        Token *token = tokenizer->tokens;
-        while ( token )
-        {
-            printf("%s\n", token->value);
-            token = token->next;
-        }
+		if(strlen(input)==0){
+			continue;
+		}
+		add_history(input);
+		tokenizer->buffer = input;
 		parse(tokenizer);
 		char* argv[tokenizer->argc];
 		build_argv(tokenizer, argv);
@@ -36,6 +55,52 @@ int main(int argc, char *argv[]) {
 		}
 		exec_command(tokenizer->argc,argv);
 		clear_tokens(tokenizer);
+		free(input);
 	}
   return exit_code;
+}
+
+
+
+char *command_generator (const char *, int);
+char **completion_function (const char *, int, int);
+
+void initialize_readline (char* pname)
+{
+  rl_readline_name = pname;
+  rl_attempted_completion_function = completion_function;
+}
+
+char ** completion_function (const char *text, int start, int end)
+{
+  char **matches;
+  matches = (char **)NULL;
+  if (start == 0)
+    matches = rl_completion_matches (text, command_generator);
+
+  return (matches);
+}
+
+char * command_generator (const char *text, int state)
+{
+  static int list_index, len;
+  char *name;
+
+
+  if (!state)
+    {
+      list_index = 0;
+      len = strlen (text);
+    }
+
+  while ((name = commands_names[list_index]))
+    {
+      list_index++;
+
+      if (strncmp (name, text, len) == 0)
+        return (dupstr(name));
+    }
+
+  printf("\a");
+  return ((char *)NULL);
 }

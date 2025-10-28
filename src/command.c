@@ -63,10 +63,18 @@ inline bool is_builtin(char* command){
 
 void exec_builtins(int argc,char* argv[]){
 	if(strcmp(argv[0], "echo")==0){
+		if(argc<=1){
+			printf("\n");
+			return;
+		}
 		char* str = join_strings(&argv[1], " ", argc-1);
 		printf("%s\n",str);
 		free(str);
 	}else if(strcmp(argv[0], "type")==0){
+		if(argc<=1){
+			printf("");
+			return;
+		}
 		if(is_builtin(argv[1])){
 			printf("%s is a shell builtin\n",argv[1]);
 		}else{
@@ -83,7 +91,7 @@ void exec_builtins(int argc,char* argv[]){
 			printf("%s\n",buf);
 		}
 	}else if(strcmp(argv[0], "cd")==0){
-		if(strcmp(argv[1], "~")==0){
+		if(argc<=1||strcmp(argv[1], "~")==0){
 			argv[1] = getenv("HOME");
 		}
 		if(chdir(argv[1])==-1){
