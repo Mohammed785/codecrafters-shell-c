@@ -1,9 +1,6 @@
 #include "command.h"
 #include "tokenizer.h"
 #include <dirent.h>
-#include <readline/history.h>
-#include <readline/keymaps.h>
-#include <readline/readline.h>
 #include <readline/rlstdc.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +10,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <readline/history.h>
+#include <readline/keymaps.h>
+#include <readline/readline.h>
 bool is_running = true;
 int exit_code = 0;
 
@@ -39,7 +39,9 @@ int main(int argc, char *argv[]) {
   using_history();
   while (is_running) {
     char *input;
-    if (isatty(STDOUT_FILENO)) {
+    // codecrafters wont pass without this for some reason
+    // Update: it wont even work with this.
+    if (isatty(STDIN_FILENO)) {
       input = readline("$ ");
     } else {
       input = readline(NULL);

@@ -5,6 +5,8 @@
 
 extern bool is_running;
 extern int exit_code;
+extern int history_limit;
+
 typedef enum RedirectType
 {
 	NO_REDIRECT,

@@ -11,6 +11,10 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <pwd.h>
+#include<readline/readline.h>
+#include <readline/history.h>
+
+int history_limit = -1;
 
 const char *builtins[] = {
 	"exit",
@@ -18,6 +22,7 @@ const char *builtins[] = {
 	"type",
 	"pwd",
 	"cd",
+	"history",
 };
 
 static inline char *join_strings(char *arr[], char *sep, int count)
@@ -64,7 +69,7 @@ char *find_exc_path(char *cmd)
 
 inline bool is_builtin(char *command)
 {
-	for (int i = 0; i < 5; i++)
+	for (int i = 0; i < 6; i++)
 	{
 		if (strcmp(command, builtins[i]) == 0)
 		{
@@ -128,6 +133,22 @@ void exec_builtins(int argc, char *argv[])
 		if (chdir(argv[1]) == -1)
 		{
 			printf("cd: %s: No such file or directory\n", argv[1]);
+		}
+	}else if(strcmp(argv[0], "history")==0){
+		if(argc>1){
+			history_limit = atoi(argv[1]);
+			return;
+		}
+	    HISTORY_STATE *hist_state = history_get_history_state ();
+		HIST_ENTRY** hist_list = history_list();
+		if(hist_list!=NULL){
+			int limit = 0;
+			if(history_limit!=-1){
+				limit = (hist_state->length-history_limit)>=0?hist_state->length-history_limit:0;
+			}
+			for(int i=limit;i<hist_state->length;i++){
+				printf("    %d  %s\n",i+1,hist_list[i]->line);
+			}
 		}
 	}
 }
