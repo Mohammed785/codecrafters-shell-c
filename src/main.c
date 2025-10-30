@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
   using_history();
   while (is_running) {
     char *input;
-    if (isatty(STDIN_FILENO)) {
+    if (isatty(STDOUT_FILENO)) {
       input = readline("$ ");
     } else {
       input = readline(NULL);
