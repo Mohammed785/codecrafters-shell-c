@@ -15,13 +15,6 @@
 #include <readline/readline.h>
 bool is_running = true;
 int exit_code = 0;
-// https://tiswww.case.edu/php/chet/readline/readline.html#Custom-Completers
-char *dupstr(char *s) {
-  char *r;
-  r = malloc(strlen(s) + 1);
-  strcpy(r, s);
-  return (r);
-}
 
 const char *commands_names[] = {"echo", "exit", "type", "pwd", "cd", NULL};
 
@@ -30,6 +23,7 @@ void initialize_readline(char *);
 int main(int argc, char *argv[]) {
   setbuf(stdout, NULL);
   setbuf(stderr, NULL);
+  int hist_offset = 0;
   initialize_readline(argv[0]);
   size_t len = 0;
   ssize_t n;
@@ -39,11 +33,11 @@ int main(int argc, char *argv[]) {
   char* hist_file= getenv("HISTFILE");
   if(hist_file!=NULL){
  	read_history(hist_file);
+  	HISTORY_STATE *hist_state = history_get_history_state();
+   	hist_offset = hist_state->length;
   }
   while (is_running) {
     char *input;
-    // codecrafters wont pass without this for some reason
-    // Update: it wont even work with this.
     if (isatty(STDIN_FILENO)) {
       input = readline("$ ");
     } else {
@@ -76,7 +70,7 @@ int main(int argc, char *argv[]) {
 			// 	last_append_offset = hist_state->length-last_append_offset;
 			// }
 			// write_history(hist_file);
-			append_history(hist_state->length, hist_file);
+			append_history(hist_state->length-hist_offset, hist_file);
       	}
         exit(0);
       }
@@ -127,7 +121,7 @@ char *command_generator(const char *text, int state) {
     list_index++;
 
     if (strncmp(name, text, len) == 0)
-      return (dupstr(name));
+      return (strdup(name));
   }
   while (dir) {
     if (!dirp)
@@ -138,7 +132,7 @@ char *command_generator(const char *text, int state) {
           char fpath[PATH_MAX];
           snprintf(fpath, sizeof(fpath), "%s/%s", dir, dp->d_name);
           if (access(fpath, X_OK) == 0) {
-            return dupstr(dp->d_name);
+            return strdup(dp->d_name);
           }
         }
       }

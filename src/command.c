@@ -171,10 +171,6 @@ void exec_builtins(int argc, char *argv[])
 		    HISTORY_STATE *hist_state = history_get_history_state();
 			HIST_ENTRY** hist_list = history_list();
 			if(hist_list!=NULL){
-				// int limit = 0;
-				// if(history_limit!=-1){
-				// 	limit = (hist_state->length-history_limit)>=0?hist_state->length-history_limit:0;
-				// }
 				for(int i=0;i<hist_state->length;i++){
 					printf("    %d  %s\n",i+1,hist_list[i]->line);
 				}
