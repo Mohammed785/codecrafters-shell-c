@@ -137,7 +137,15 @@ void exec_builtins(int argc, char *argv[])
 		}
 	}else if(strcmp(argv[0], "history")==0){
 		if(argc==2){
-			history_limit = atoi(argv[1]);
+			HISTORY_STATE *hist_state = history_get_history_state();
+			HIST_ENTRY** hist_list = history_list();
+			if(hist_list!=NULL){
+				history_limit = atoi(argv[1]);
+				int limit = (hist_state->length-history_limit)>=0?hist_state->length-history_limit:0;
+				for(int i=limit;i<hist_state->length;i++){
+					printf("    %d  %s\n",i+1,hist_list[i]->line);
+				}
+			}
 		}else if(argc==3){
 			if(strcmp(argv[1],"-r")==0){
 				read_history(argv[2]);
@@ -160,14 +168,14 @@ void exec_builtins(int argc, char *argv[])
 				append_history(last_append_offset, argv[2]);
 			}
 		}else{
-		    HISTORY_STATE *hist_state = history_get_history_state ();
+		    HISTORY_STATE *hist_state = history_get_history_state();
 			HIST_ENTRY** hist_list = history_list();
 			if(hist_list!=NULL){
-				int limit = 0;
-				if(history_limit!=-1){
-					limit = (hist_state->length-history_limit)>=0?hist_state->length-history_limit:0;
-				}
-				for(int i=limit;i<hist_state->length;i++){
+				// int limit = 0;
+				// if(history_limit!=-1){
+				// 	limit = (hist_state->length-history_limit)>=0?hist_state->length-history_limit:0;
+				// }
+				for(int i=0;i<hist_state->length;i++){
 					printf("    %d  %s\n",i+1,hist_list[i]->line);
 				}
 			}
