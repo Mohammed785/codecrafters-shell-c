@@ -15,6 +15,7 @@
 #include <readline/history.h>
 
 int history_limit = -1;
+int last_append_offset = -1;
 
 const char *builtins[] = {
 	"exit",
@@ -135,19 +136,40 @@ void exec_builtins(int argc, char *argv[])
 			printf("cd: %s: No such file or directory\n", argv[1]);
 		}
 	}else if(strcmp(argv[0], "history")==0){
-		if(argc>1){
+		if(argc==2){
 			history_limit = atoi(argv[1]);
-			return;
-		}
-	    HISTORY_STATE *hist_state = history_get_history_state ();
-		HIST_ENTRY** hist_list = history_list();
-		if(hist_list!=NULL){
-			int limit = 0;
-			if(history_limit!=-1){
-				limit = (hist_state->length-history_limit)>=0?hist_state->length-history_limit:0;
+		}else if(argc==3){
+			if(strcmp(argv[1],"-r")==0){
+				read_history(argv[2]);
+			}else if(strcmp(argv[1],"-w")==0){
+				write_history(argv[2]);
+				// HIST_ENTRY** hist_list = history_list();
+				// if(hist_list!=NULL){
+				// 	for(HIST_ENTRY** entry=hist_list;*hist_list!=NULL;entry++){
+				// 		fprintf(f, "%s\n",(*entry)->line);
+				// 	}
+				// }
+				// fclose(f);
+			}else if(strcmp(argv[1],"-a")==0){
+				HISTORY_STATE *hist_state = history_get_history_state();
+				if(last_append_offset==-1){
+					last_append_offset = hist_state->length;
+				}else{
+					last_append_offset = hist_state->length-last_append_offset;
+				}
+				append_history(last_append_offset, argv[2]);
 			}
-			for(int i=limit;i<hist_state->length;i++){
-				printf("    %d  %s\n",i+1,hist_list[i]->line);
+		}else{
+		    HISTORY_STATE *hist_state = history_get_history_state ();
+			HIST_ENTRY** hist_list = history_list();
+			if(hist_list!=NULL){
+				int limit = 0;
+				if(history_limit!=-1){
+					limit = (hist_state->length-history_limit)>=0?hist_state->length-history_limit:0;
+				}
+				for(int i=limit;i<hist_state->length;i++){
+					printf("    %d  %s\n",i+1,hist_list[i]->line);
+				}
 			}
 		}
 	}
@@ -363,7 +385,7 @@ void exec_commands(int pipes_c, int *cmd_argc, char ***cmds)
 		close(pipes[i][1]);
 	}
 
-	for (int i = 0; i < N; i++)
+	for (int i = 0; i < N+1; i++)
 	{
 		waitpid(pids[i], NULL, 0);
 	}

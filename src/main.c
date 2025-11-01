@@ -15,7 +15,6 @@
 #include <readline/readline.h>
 bool is_running = true;
 int exit_code = 0;
-
 // https://tiswww.case.edu/php/chet/readline/readline.html#Custom-Completers
 char *dupstr(char *s) {
   char *r;
@@ -37,6 +36,10 @@ int main(int argc, char *argv[]) {
   Tokenizer *tokenizer = new_tokenizer();
   rl_bind_key('\t', rl_complete);
   using_history();
+  char* hist_file= getenv("HISTFILE");
+  if(hist_file!=NULL){
+ 	read_history(hist_file);
+  }
   while (is_running) {
     char *input;
     // codecrafters wont pass without this for some reason
@@ -65,6 +68,16 @@ int main(int argc, char *argv[]) {
       char *cmd_argv[tokenizer->argc];
       build_argv(tokenizer, cmd_argv);
       if (strcmp(cmd_argv[0], "exit") == 0) {
+     	if(hist_file!=NULL){
+    		HISTORY_STATE *hist_state = history_get_history_state();
+			// if(last_append_offset==-1){
+			// 	last_append_offset = hist_state->length;
+			// }else{
+			// 	last_append_offset = hist_state->length-last_append_offset;
+			// }
+			// write_history(hist_file);
+			append_history(hist_state->length, hist_file);
+      	}
         exit(0);
       }
       exec_command(tokenizer->argc, cmd_argv);

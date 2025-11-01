@@ -6,6 +6,7 @@
 extern bool is_running;
 extern int exit_code;
 extern int history_limit;
+extern int last_append_offset;
 
 typedef enum RedirectType
 {
@@ -32,4 +33,5 @@ void check_redirect(int *argc, char *[], RedirectState *);
 void build_argv_pipeline(Tokenizer *, char **[], int *);
 void exec_commands(int,int *, char **[]);
 bool check_pipeline(Tokenizer *);
+
 #endif
